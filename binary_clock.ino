@@ -9,6 +9,8 @@ const int BATT_PIN = A0;
 
 const char serverHost[] = "192.168.1.111";
 
+long int seconds = 0;
+
 WiFiClient wifi_client;
 PubSubClient client(serverHost, 1883, wifi_client);
 
@@ -19,8 +21,7 @@ void callback(char* topic, byte* payload, unsigned int length)
   //Serial.print(payload);
 
   //Do something
-
-  
+  seconds = strtol((char*)payload);
 }
 
 void initHardware()
@@ -73,9 +74,12 @@ int connectToServer()
   {
     if (client.connect("ESP8266 Binary Clock"))
     {
-      client.subscribe("XXXXX");
+      client.subscribe("binary_clock/time");
       Serial.println("Connected to server");
       digitalWrite(LED_PIN, HIGH);
+      
+      // Send request for the current time
+      client.publish("binary_clock/request", "1");
       return 1;
     }
     counter += 1;
