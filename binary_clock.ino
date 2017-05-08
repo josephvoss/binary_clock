@@ -178,17 +178,32 @@ void setup()
     digitalWrite(LED_PIN, HIGH);
 }
 
+//Initial timer values
+int time1 = 0;
+int time2 = 0;
+
 void loop()
 {
+    //Check time
+    time1 = millis();
+    update_arr(light_array, seconds);
+    seconds++;
+    //Reset time to 0 at midnight
+    if (seconds == 86400) seconds = 0;
+
+    //Check if still connected to wifi
+    //Not really necessary imo
     if (!client.connected())
     {
         connectToServer();
     }
 
-    update_arr(light_array, seconds);
-    seconds++;
-    if (seconds == 86400) seconds = 0;
-    delay(1000);
-    client.loop(); 
+    //Receive and send messages
+    //Not really necessary imo
+    client.loop();
+
+    //Check how long it's been, and if it hasn't been a full second, wait
+    time2 = millis();
+    if (time2 - time1 < 1000) delay(1000 - (time2-time1)); 
 }
 
