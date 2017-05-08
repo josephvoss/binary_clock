@@ -9,7 +9,7 @@ const int BATT_PIN = A0;
 
 const char serverHost[] = "192.168.1.111";
 
-long int seconds = 0;
+unsigned long int seconds = 0;
 
 WiFiClient wifi_client;
 PubSubClient client(serverHost, 1883, wifi_client);
@@ -20,8 +20,9 @@ void callback(char* topic, byte* payload, unsigned int length)
     //Serial.print(topic);
     //Serial.print(payload);
 
-    //Do something
-    seconds = strtol((char*)payload);
+    char* ptr;
+    //Convert input to unsigned long int
+    seconds = strtoul((char*)payload, &ptr, 10);
 }
 
 void initHardware()
@@ -52,15 +53,9 @@ void connectWiFi()
         delay(5000); //wait 5 seconds
 
         Serial.println("Not connected");
-        lcd.clear();
-        lcd.print("WiFi Not");
-        lcd.setCursor(0,1);
-        lcd.print("Connected");
         wifi_counter += 1;
     }
-    //Serial.println("Wifi connected successfully");
-    lcd.clear();
-    lcd.print("WiFi Connected");
+    Serial.println("Wifi connected successfully");
     digitalWrite(LED_PIN, HIGH);
 }
 
@@ -174,8 +169,8 @@ void setup()
         light_array[i*2+1] = (int*) malloc(sizeof(int*)*10);
         for (int j = 0; j<4; j++)
         {
-            tot_arr[i*2][j] = 0;
-            tot_arr[i*2+1][j] = 0;
+            light_array[i*2][j] = 0;
+            light_array[i*2+1][j] = 0;
         }
     }
 
@@ -190,10 +185,10 @@ void loop()
         connectToServer();
     }
 
-    update_arr(light_arr, seconds);
+    update_arr(light_array, seconds);
     seconds++;
     if (seconds == 86400) seconds = 0;
-    mills(1000);
+    delay(1000);
     client.loop(); 
 }
 
