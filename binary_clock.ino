@@ -7,6 +7,10 @@ const char WiFiPSK[] = "XXXX";
 const int LED_PIN = 2;
 const int BATT_PIN = A0;
 
+const int hour_pins[4] = {D1, D2, D3, D4};
+const int clock_pins[2] = {D5, D7};
+const int shift_pins[2] = {D6, D8};
+
 const char serverHost[] = "192.168.1.111";
 
 unsigned long int seconds = 0;
@@ -23,12 +27,20 @@ void callback(char* topic, byte* payload, unsigned int length)
     char* ptr;
     //Convert input to unsigned long int
     seconds = strtoul((char*)payload, &ptr, 10);
+    Serial.printf("Seconds received: %d\n\r",seconds);
 }
 
 void initHardware()
 {
     Serial.begin(9600);
     client.setCallback(callback);
+    for (int i=0; i<4; i++)
+        pinMode(hour_pins[i], OUTPUT);
+    for (int i=0; i<2; i++)
+    {
+        pinMode(clock_pins[i], OUTPUT);
+        pinMode(shift_pins[i], OUTPUT);
+    }
 }
 
 void connectWiFi()
@@ -147,12 +159,81 @@ void set_lights(int** tot_arr)
     for (int i = 0; i<3; i++)
     {
         for (int j = 0; j<4; j++)
-            printf("%d ", tot_arr[i*2+1][j]);
-        printf("\n");
-        for (int j = 0; j<4; j++)
-            printf("%d ", tot_arr[i*2][j]);
-        printf("\n");
+            Serial.printf("%d ", tot_arr[i*2+1][j]);
+        Serial.printf("\n\r");
+        for (int j = 0; j<3; j++)
+            Serial.printf("%d ", tot_arr[i*2][j]);
+        Serial.printf("\n\r");
     }
+    Serial.println();
+
+    //Light setup
+    //Hours 10
+    // 2 - register 1 pin 0
+    // 1 - register 0 pin 0
+    //Hours 1
+    // 8 - D4 
+    // 4 - D3
+    // 2 - D2
+    // 1 - D1
+    //Minutes 10
+    // 4 - register 1 pin 7
+    // 2 - register 1 pin 6
+    // 1 - register 1 pin 5
+    //Minutes 1
+    // 8 - register 1 pin 4
+    // 4 - register 1 pin 3
+    // 2 - register 1 pin 2
+    // 1 - register 1 pin 1 
+    //Seconds 10
+    // 4 - register 0 pin 7
+    // 2 - register 0 pin 6
+    // 1 - register 0 pin 5
+    //Seconds 1
+    // 8 - register 0 pin 4
+    // 4 - register 0 pin 3
+    // 2 - register 0 pin 2
+    // 1 - register 0 pin 1 
+
+    int shift_array[2] = {0,0};
+    int other_pins[4] = {0,0,0,0};
+
+    //Build shift register values
+    for (int i=0; i<3; i++)
+    {
+        //If not in hours place
+        if (i != 2)
+        {
+            //Tens
+            for (int j = 0; j<4; j++)
+            {
+                shift_array[i] += tot_arr[i*2+1][j];
+                shift_array[i] <<= 1;
+            }
+            //Minutes
+            for (int j = 0; j<3; j++)
+            {
+                shift_array[i] += tot_arr[i*2][j];
+                shift_array[i] <<= 1;
+            }
+            Serial.printf("%d\n\r", shift_array[i]);
+        }
+        //If hours place
+        else
+        {
+            //Tens
+            shift_array[0] += tot_arr[2*2+1][0];
+            shift_array[1] += tot_arr[2*2+1][1];
+            //Minutes
+            for (int j=0; j<4; j++)
+                other_pins[j] = tot_arr[2*2][j];
+        }
+    }
+
+    shiftOut(shift_pins[0], clock_pins[0], MSBFIRST, shift_array[0]);
+    shiftOut(shift_pins[1], clock_pins[1], MSBFIRST, shift_array[1]);
+    for (int i=0; i<3; i++)
+        digitalWrite(hour_pins[i], other_pins[i]);
 }
 
 int** light_array;
@@ -176,11 +257,15 @@ void setup()
 
     connectWiFi();
     digitalWrite(LED_PIN, HIGH);
+
+//    DDRD = B11111111;
 }
 
 //Initial timer values
 int time1 = 0;
 int time2 = 0;
+
+bool ledStatus = LOW;
 
 void loop()
 {
@@ -188,8 +273,13 @@ void loop()
     time1 = millis();
     update_arr(light_array, seconds);
     seconds++;
+    set_lights(light_array);
+    
     //Reset time to 0 at midnight
     if (seconds == 86400) seconds = 0;
+    
+    digitalWrite(LED_PIN, ledStatus); // Write LED high/low
+    ledStatus = (ledStatus == HIGH) ? LOW : HIGH;
 
     //Check if still connected to wifi
     //Not really necessary imo
