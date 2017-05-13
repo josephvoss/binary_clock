@@ -158,10 +158,10 @@ void set_lights(int** tot_arr)
 {
     for (int i = 0; i<3; i++)
     {
-        for (int j = 0; j<4; j++)
+        for (int j = 1; j<4; j++)
             Serial.printf("%d ", tot_arr[i*2+1][j]);
         Serial.printf("\n\r");
-        for (int j = 0; j<3; j++)
+        for (int j = 0; j<4; j++)
             Serial.printf("%d ", tot_arr[i*2][j]);
         Serial.printf("\n\r");
     }
@@ -202,31 +202,31 @@ void set_lights(int** tot_arr)
     for (int i=0; i<3; i++)
     {
         //If not in hours place
-        if (i != 2)
+        if (i != 0)
         {
-            //Tens
+            //10s
+            for (int j = 1; j<4; j++)
+            {
+                shift_array[i-1] <<= 1;
+                shift_array[i-1] += tot_arr[i*2+1][j];
+            }
+            //1s
             for (int j = 0; j<4; j++)
             {
-                shift_array[i] += tot_arr[i*2+1][j];
-                shift_array[i] <<= 1;
+                shift_array[i-1] <<= 1;
+                shift_array[i-1] += tot_arr[i*2][j];
             }
-            //Minutes
-            for (int j = 0; j<3; j++)
-            {
-                shift_array[i] += tot_arr[i*2][j];
-                shift_array[i] <<= 1;
-            }
-            Serial.printf("%d\n\r", shift_array[i]);
+            Serial.printf("%x\n\r", shift_array[i-1]);
         }
         //If hours place
         else
         {
-            //Tens
-            shift_array[0] += tot_arr[2*2+1][0];
-            shift_array[1] += tot_arr[2*2+1][1];
-            //Minutes
+            //10s
+            shift_array[1] += tot_arr[0+1][3];
+            shift_array[0] += tot_arr[0+1][2];
+            //1s
             for (int j=0; j<4; j++)
-                other_pins[j] = tot_arr[2*2][j];
+                other_pins[j] = tot_arr[0][j];
         }
     }
 
