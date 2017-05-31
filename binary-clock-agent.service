@@ -1,0 +1,16 @@
+[Unit]
+Description=Simplified simple mqtt-agents service
+After=multi-user.target
+
+[Service]
+Type=simple
+User=zahir
+Group=adm
+WorkingDirectory=/home/zahir/git/binary-clock/
+ExecStart=/home/zahir/git/binary-clock/binary-clock.py
+StandardOutput=syslog
+StandardError=syslog
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
